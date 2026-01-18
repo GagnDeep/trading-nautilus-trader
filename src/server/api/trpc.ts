@@ -9,6 +9,9 @@
 import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import { PrismaClient } from "@prisma/client";
+
+const db = new PrismaClient();
 
 /**
  * 1. CONTEXT
@@ -24,6 +27,7 @@ import { ZodError } from "zod";
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
   return {
+    db,
     ...opts,
   };
 };

@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "sqlite"
+    url      = env("DATABASE_URL")
+}
+
+model Strategy {
+    id             String   @id @default(cuid())
+    name           String
+    description    String
+    file_path      String   // Path relative to python_engine/strategies
+    default_params String   // JSON string of default configuration
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt
+
+    sessions Session[]
+}
+
+model Session {
+    id            String    @id @default(cuid())
+    strategyId    String
+    strategy      Strategy  @relation(fields: [strategyId], references: [id])
+    type          String    // "BACKTEST" | "LIVE"
+    status        String    // "RUNNING" | "COMPLETED" | "FAILED" | "STOPPED"
+    startTime     DateTime  @default(now())
+    endTime       DateTime?
+    configUsed    String    // JSON string of configuration used for this run
+    finalPnL      Float?
+
+    trades        Trade[]
+    metrics       Metric[]
+    logs          Log[]
+}
+
+model Trade {
+    id        String   @id @default(cuid())
+    sessionId String
+    session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    symbol    String
+    side      String   // "BUY" | "SELL"
+    qty       Float
+    price     Float
+    timestamp DateTime
+}
+
+model Metric {
+    id        String   @id @default(cuid())
+    sessionId String
+    session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    timestamp DateTime
+    equity    Float
+    drawdown  Float?
+}
+
+model Log {
+    id        String   @id @default(cuid())
+    sessionId String
+    session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+    level     String   // "INFO" | "WARNING" | "ERROR" | "DEBUG"
+    message   String
+    timestamp DateTime @default(now())
+}
