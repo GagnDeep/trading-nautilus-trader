@@ -1,51 +1,99 @@
+import { HydrateClient } from "@/trpc/server";
+import { api } from "@/trpc/server";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Activity, TrendingUp, Zap } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
-import { LatestPost } from "@/app/_components/post";
-import { api, HydrateClient } from "@/trpc/server";
-
-export default async function Home() {
-  const hello = await api.post.hello({ text: "from tRPC" });
-
-  void api.post.getLatest.prefetch();
+export default async function Dashboard() {
+  const recentSessions = await api.trading.getRecentSessions();
+  const activeStrategies = await api.trading.getStrategies();
 
   return (
     <HydrateClient>
-      <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
-        <div className="container flex flex-col items-center justify-center gap-12 px-4 py-16">
-          <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
-            Create <span className="text-[hsl(280,100%,70%)]">T3</span> App
-          </h1>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-8">
-            <Link
-              className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-              href="https://create.t3.gg/en/usage/first-steps"
-              target="_blank"
-            >
-              <h3 className="text-2xl font-bold">First Steps →</h3>
-              <div className="text-lg">
-                Just the basics - Everything you need to know to set up your
-                database and authentication.
-              </div>
+      <main className="container mx-auto p-8 space-y-8">
+        <header className="flex justify-between items-center mb-8">
+            <div>
+                <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-2">
+                Mission Control
+                </h1>
+                <p className="text-muted-foreground">
+                NautilusTrader Orchestration System
+                </p>
+            </div>
+            <Link href="/strategies">
+                <Button size="lg" className="font-semibold">
+                    Deploy Strategy <Zap className="ml-2 w-4 h-4"/>
+                </Button>
             </Link>
-            <Link
-              className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 hover:bg-white/20"
-              href="https://create.t3.gg/en/introduction"
-              target="_blank"
-            >
-              <h3 className="text-2xl font-bold">Documentation →</h3>
-              <div className="text-lg">
-                Learn more about Create T3 App, the libraries it uses, and how
-                to deploy it.
-              </div>
-            </Link>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-2xl text-white">
-              {hello ? hello.greeting : "Loading tRPC query..."}
-            </p>
-          </div>
+        </header>
 
-          <LatestPost />
+        {/* KPI Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Strategies</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{activeStrategies.length}</div>
+              <p className="text-xs text-muted-foreground">Available in library</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Runs</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{recentSessions.length}</div>
+              <p className="text-xs text-muted-foreground">Total sessions executed</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="col-span-4">
+            <CardHeader>
+              <CardTitle>Recent Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    {recentSessions.length === 0 && <p className="text-muted-foreground">No recent activity.</p>}
+                    {recentSessions.map(session => (
+                        <div key={session.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-2 h-2 rounded-full ${session.status === 'COMPLETED' ? 'bg-green-500' : session.status === 'RUNNING' ? 'bg-blue-500' : 'bg-red-500'}`} />
+                                <div>
+                                    <p className="text-sm font-medium leading-none">{session.strategy.name}</p>
+                                    <p className="text-xs text-muted-foreground">{session.type} • {new Date(session.startTime).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <Link href={`/monitor/${session.id}`}>
+                                <Button variant="outline" size="sm">Monitor</Button>
+                            </Link>
+                        </div>
+                    ))}
+                </div>
+            </CardContent>
+          </Card>
+
+          <Card className="col-span-3">
+             <CardHeader>
+                <CardTitle>System Status</CardTitle>
+             </CardHeader>
+             <CardContent>
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+                    <span className="font-medium">Nautilus Engine: Online</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+                    <span className="font-medium">Redis Bridge: Connected</span>
+                </div>
+             </CardContent>
+          </Card>
         </div>
       </main>
     </HydrateClient>
